@@ -1,5 +1,6 @@
+#line 1 "p1/lex.yy.c"
 
-#line 3 "lex.yy.c"
+#line 3 "p1/lex.yy.c"
 
 #define  YY_INT_ALIGNED short int
 
@@ -46,6 +47,7 @@ typedef int16_t flex_int16_t;
 typedef uint16_t flex_uint16_t;
 typedef int32_t flex_int32_t;
 typedef uint32_t flex_uint32_t;
+typedef uint64_t flex_uint64_t;
 #else
 typedef signed char flex_int8_t;
 typedef short int flex_int16_t;
@@ -154,7 +156,7 @@ typedef struct yy_buffer_state *YY_BUFFER_STATE;
 typedef size_t yy_size_t;
 #endif
 
-extern int yyleng;
+extern yy_size_t yyleng;
 
 extern FILE *yyin, *yyout;
 
@@ -197,7 +199,7 @@ struct yy_buffer_state
 	/* Number of characters read into yy_ch_buf, not including EOB
 	 * characters.
 	 */
-	int yy_n_chars;
+	yy_size_t yy_n_chars;
 
 	/* Whether we "own" the buffer - i.e., we know we created it,
 	 * and can realloc() it to grow it, and should free() it to
@@ -266,8 +268,8 @@ static YY_BUFFER_STATE * yy_buffer_stack = NULL; /**< Stack as an array. */
 
 /* yy_hold_char holds the character lost when yytext is formed. */
 static char yy_hold_char;
-static int yy_n_chars;		/* number of characters read into yy_ch_buf */
-int yyleng;
+static yy_size_t yy_n_chars;		/* number of characters read into yy_ch_buf */
+yy_size_t yyleng;
 
 /* Points to current character in buffer. */
 static char *yy_c_buf_p = NULL;
@@ -294,7 +296,7 @@ static void yy_init_buffer ( YY_BUFFER_STATE b, FILE *file  );
 
 YY_BUFFER_STATE yy_scan_buffer ( char *base, yy_size_t size  );
 YY_BUFFER_STATE yy_scan_string ( const char *yy_str  );
-YY_BUFFER_STATE yy_scan_bytes ( const char *bytes, int len  );
+YY_BUFFER_STATE yy_scan_bytes ( const char *bytes, yy_size_t len  );
 
 void *yyalloc ( yy_size_t  );
 void *yyrealloc ( void *, yy_size_t  );
@@ -350,7 +352,7 @@ static void yynoreturn yy_fatal_error ( const char* msg  );
  */
 #define YY_DO_BEFORE_ACTION \
 	(yytext_ptr) = yy_bp; \
-	yyleng = (int) (yy_cp - yy_bp); \
+	yyleng = (yy_size_t) (yy_cp - yy_bp); \
 	(yy_hold_char) = *yy_cp; \
 	*yy_cp = '\0'; \
 	(yy_c_buf_p) = yy_cp;
@@ -619,8 +621,8 @@ int yy_flex_debug = 0;
 #define YY_MORE_ADJ 0
 #define YY_RESTORE_YY_MORE_OFFSET
 char *yytext;
-#line 1 "lexer.l"
-#line 2 "lexer.l"
+#line 1 "p1/lexer.l"
+#line 2 "p1/lexer.l"
 /*
  * ============================================================
  *  PHASE 1 — Lexical Analyser
@@ -665,10 +667,10 @@ static void print_token(const char *col, const char *type,
            GRAY,  cat,      RESET,
            val);
 }
-#line 669 "lex.yy.c"
+#line 670 "p1/lex.yy.c"
 #define YY_NO_INPUT 1
 
-#line 672 "lex.yy.c"
+#line 673 "p1/lex.yy.c"
 
 #define INITIAL 0
 #define BLOCK_CMT 1
@@ -710,7 +712,7 @@ FILE *yyget_out ( void );
 
 void yyset_out  ( FILE * _out_str  );
 
-			int yyget_leng ( void );
+			yy_size_t yyget_leng ( void );
 
 char *yyget_text ( void );
 
@@ -777,7 +779,7 @@ static int input ( void );
 	if ( YY_CURRENT_BUFFER_LVALUE->yy_is_interactive ) \
 		{ \
 		int c = '*'; \
-		int n; \
+		yy_size_t n; \
 		for ( n = 0; n < max_size && \
 			     (c = getc( yyin )) != EOF && c != '\n'; ++n ) \
 			buf[n] = (char) c; \
@@ -889,12 +891,12 @@ YY_DECL
 		}
 
 	{
-#line 62 "lexer.l"
+#line 62 "p1/lexer.l"
 
 
-#line 65 "lexer.l"
+#line 65 "p1/lexer.l"
  /* preprocessor */
-#line 898 "lex.yy.c"
+#line 899 "p1/lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -954,39 +956,39 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 66 "lexer.l"
+#line 66 "p1/lexer.l"
 { cnt_pre++; print_token(LBLUE,"PREPROCESSOR",yytext,"directive"); }
 	YY_BREAK
 /* block comment */
 case 2:
 YY_RULE_SETUP
-#line 69 "lexer.l"
+#line 69 "p1/lexer.l"
 { cnt_cmt++; BEGIN(BLOCK_CMT);
                     print_token(GRAY,"COMMENT","/*","block-start"); }
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 71 "lexer.l"
+#line 71 "p1/lexer.l"
 { print_token(GRAY,"COMMENT","*/","block-end"); BEGIN(INITIAL); }
 	YY_BREAK
 case 4:
 /* rule 4 can match eol */
 YY_RULE_SETUP
-#line 72 "lexer.l"
+#line 72 "p1/lexer.l"
 { line_num++; }
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 73 "lexer.l"
+#line 73 "p1/lexer.l"
 { }
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 74 "lexer.l"
+#line 74 "p1/lexer.l"
 { }
 	YY_BREAK
 case YY_STATE_EOF(BLOCK_CMT):
-#line 75 "lexer.l"
+#line 75 "p1/lexer.l"
 {
     fprintf(stderr, RED "  ERROR line %d: Unclosed block comment\n" RESET, line_num);
     error_count++; BEGIN(INITIAL);
@@ -995,55 +997,55 @@ case YY_STATE_EOF(BLOCK_CMT):
 /* line comment */
 case 7:
 YY_RULE_SETUP
-#line 81 "lexer.l"
+#line 81 "p1/lexer.l"
 { cnt_cmt++; BEGIN(LINE_CMT);
                     print_token(GRAY,"COMMENT","//","line-start"); }
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 83 "lexer.l"
+#line 83 "p1/lexer.l"
 { }
 	YY_BREAK
 case 9:
 /* rule 9 can match eol */
 YY_RULE_SETUP
-#line 84 "lexer.l"
+#line 84 "p1/lexer.l"
 { line_num++; BEGIN(INITIAL); }
 	YY_BREAK
 /* string literal */
 case 10:
 YY_RULE_SETUP
-#line 87 "lexer.l"
+#line 87 "p1/lexer.l"
 { BEGIN(STR_LIT); }
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 88 "lexer.l"
+#line 88 "p1/lexer.l"
 { }
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 89 "lexer.l"
+#line 89 "p1/lexer.l"
 { }
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 90 "lexer.l"
+#line 90 "p1/lexer.l"
 { }
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 91 "lexer.l"
+#line 91 "p1/lexer.l"
 { }
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 92 "lexer.l"
+#line 92 "p1/lexer.l"
 { }
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 93 "lexer.l"
+#line 93 "p1/lexer.l"
 { cnt_str++;
                     print_token(YELLOW,"STRING_LITERAL",yytext,"literal");
                     BEGIN(INITIAL); }
@@ -1051,14 +1053,14 @@ YY_RULE_SETUP
 case 17:
 /* rule 17 can match eol */
 YY_RULE_SETUP
-#line 96 "lexer.l"
+#line 96 "p1/lexer.l"
 {
     fprintf(stderr, RED "  ERROR line %d: Unterminated string\n" RESET, line_num);
     error_count++; line_num++; BEGIN(INITIAL);
 }
 	YY_BREAK
 case YY_STATE_EOF(STR_LIT):
-#line 100 "lexer.l"
+#line 100 "p1/lexer.l"
 {
     fprintf(stderr, RED "  ERROR line %d: Unterminated string at EOF\n" RESET, line_num);
     error_count++; BEGIN(INITIAL);
@@ -1067,463 +1069,463 @@ case YY_STATE_EOF(STR_LIT):
 /* char literal */
 case 18:
 YY_RULE_SETUP
-#line 106 "lexer.l"
+#line 106 "p1/lexer.l"
 { cnt_str++; print_token(YELLOW,"CHAR_LITERAL",yytext,"literal"); }
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 107 "lexer.l"
+#line 107 "p1/lexer.l"
 { cnt_str++; print_token(YELLOW,"CHAR_LITERAL",yytext,"literal"); }
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 108 "lexer.l"
+#line 108 "p1/lexer.l"
 { cnt_str++; print_token(YELLOW,"CHAR_LITERAL",yytext,"literal"); }
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 109 "lexer.l"
+#line 109 "p1/lexer.l"
 { cnt_str++; print_token(YELLOW,"CHAR_LITERAL",yytext,"literal"); }
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 110 "lexer.l"
+#line 110 "p1/lexer.l"
 { cnt_str++; print_token(YELLOW,"CHAR_LITERAL",yytext,"literal"); }
 	YY_BREAK
 /* keywords */
 case 23:
 YY_RULE_SETUP
-#line 113 "lexer.l"
+#line 113 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 114 "lexer.l"
+#line 114 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 115 "lexer.l"
+#line 115 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 116 "lexer.l"
+#line 116 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 117 "lexer.l"
+#line 117 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 118 "lexer.l"
+#line 118 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 119 "lexer.l"
+#line 119 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 120 "lexer.l"
+#line 120 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 121 "lexer.l"
+#line 121 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 32:
 YY_RULE_SETUP
-#line 122 "lexer.l"
+#line 122 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 123 "lexer.l"
+#line 123 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
-#line 124 "lexer.l"
+#line 124 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 35:
 YY_RULE_SETUP
-#line 125 "lexer.l"
+#line 125 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 126 "lexer.l"
+#line 126 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 127 "lexer.l"
+#line 127 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 128 "lexer.l"
+#line 128 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 129 "lexer.l"
+#line 129 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 40:
 YY_RULE_SETUP
-#line 130 "lexer.l"
+#line 130 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 131 "lexer.l"
+#line 131 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 132 "lexer.l"
+#line 132 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 133 "lexer.l"
+#line 133 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 134 "lexer.l"
+#line 134 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 135 "lexer.l"
+#line 135 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 136 "lexer.l"
+#line 136 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 137 "lexer.l"
+#line 137 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 138 "lexer.l"
+#line 138 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 139 "lexer.l"
+#line 139 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 140 "lexer.l"
+#line 140 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 141 "lexer.l"
+#line 141 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 142 "lexer.l"
+#line 142 "p1/lexer.l"
 { cnt_kw++; print_token(BLUE,"KEYWORD",yytext,"keyword"); }
 	YY_BREAK
 /* identifiers */
 case 53:
 YY_RULE_SETUP
-#line 145 "lexer.l"
+#line 145 "p1/lexer.l"
 { cnt_id++; print_token(WHITE,"IDENTIFIER",yytext,"identifier"); }
 	YY_BREAK
 /* numbers */
 case 54:
 YY_RULE_SETUP
-#line 148 "lexer.l"
+#line 148 "p1/lexer.l"
 { cnt_num++; print_token(GREEN,"HEX_INTEGER",yytext,"literal"); }
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 149 "lexer.l"
+#line 149 "p1/lexer.l"
 { cnt_num++; print_token(GREEN,"OCT_INTEGER",yytext,"literal"); }
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 150 "lexer.l"
+#line 150 "p1/lexer.l"
 { cnt_num++; print_token(GREEN,"FLOAT",yytext,"literal"); }
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 151 "lexer.l"
+#line 151 "p1/lexer.l"
 { cnt_num++; print_token(GREEN,"FLOAT",yytext,"literal"); }
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 152 "lexer.l"
+#line 152 "p1/lexer.l"
 { cnt_num++; print_token(GREEN,"FLOAT",yytext,"literal"); }
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 153 "lexer.l"
+#line 153 "p1/lexer.l"
 { cnt_num++; print_token(GREEN,"INTEGER",yytext,"literal"); }
 	YY_BREAK
 /* operators */
 case 60:
 YY_RULE_SETUP
-#line 156 "lexer.l"
+#line 156 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ASSIGN",yytext,"operator"); }
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 157 "lexer.l"
+#line 157 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ASSIGN",yytext,"operator"); }
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 158 "lexer.l"
+#line 158 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ASSIGN",yytext,"operator"); }
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 159 "lexer.l"
+#line 159 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ASSIGN",yytext,"operator"); }
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 160 "lexer.l"
+#line 160 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ASSIGN",yytext,"operator"); }
 	YY_BREAK
 case 65:
 YY_RULE_SETUP
-#line 161 "lexer.l"
+#line 161 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ASSIGN",yytext,"operator"); }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 162 "lexer.l"
+#line 162 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ASSIGN",yytext,"operator"); }
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 163 "lexer.l"
+#line 163 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ASSIGN",yytext,"operator"); }
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 164 "lexer.l"
+#line 164 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ASSIGN",yytext,"operator"); }
 	YY_BREAK
 case 69:
 YY_RULE_SETUP
-#line 165 "lexer.l"
+#line 165 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ASSIGN",yytext,"operator"); }
 	YY_BREAK
 case 70:
 YY_RULE_SETUP
-#line 166 "lexer.l"
+#line 166 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_LOGICAL",yytext,"operator"); }
 	YY_BREAK
 case 71:
 YY_RULE_SETUP
-#line 167 "lexer.l"
+#line 167 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_LOGICAL",yytext,"operator"); }
 	YY_BREAK
 case 72:
 YY_RULE_SETUP
-#line 168 "lexer.l"
+#line 168 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_RELAT",yytext,"operator"); }
 	YY_BREAK
 case 73:
 YY_RULE_SETUP
-#line 169 "lexer.l"
+#line 169 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_RELAT",yytext,"operator"); }
 	YY_BREAK
 case 74:
 YY_RULE_SETUP
-#line 170 "lexer.l"
+#line 170 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_RELAT",yytext,"operator"); }
 	YY_BREAK
 case 75:
 YY_RULE_SETUP
-#line 171 "lexer.l"
+#line 171 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_RELAT",yytext,"operator"); }
 	YY_BREAK
 case 76:
 YY_RULE_SETUP
-#line 172 "lexer.l"
+#line 172 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_SHIFT",yytext,"operator"); }
 	YY_BREAK
 case 77:
 YY_RULE_SETUP
-#line 173 "lexer.l"
+#line 173 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_SHIFT",yytext,"operator"); }
 	YY_BREAK
 case 78:
 YY_RULE_SETUP
-#line 174 "lexer.l"
+#line 174 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_INCDEC",yytext,"operator"); }
 	YY_BREAK
 case 79:
 YY_RULE_SETUP
-#line 175 "lexer.l"
+#line 175 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_INCDEC",yytext,"operator"); }
 	YY_BREAK
 case 80:
 YY_RULE_SETUP
-#line 176 "lexer.l"
+#line 176 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ARROW",yytext,"operator"); }
 	YY_BREAK
 case 81:
 YY_RULE_SETUP
-#line 177 "lexer.l"
+#line 177 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ARITH",yytext,"operator"); }
 	YY_BREAK
 case 82:
 YY_RULE_SETUP
-#line 178 "lexer.l"
+#line 178 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ARITH",yytext,"operator"); }
 	YY_BREAK
 case 83:
 YY_RULE_SETUP
-#line 179 "lexer.l"
+#line 179 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ARITH",yytext,"operator"); }
 	YY_BREAK
 case 84:
 YY_RULE_SETUP
-#line 180 "lexer.l"
+#line 180 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ARITH",yytext,"operator"); }
 	YY_BREAK
 case 85:
 YY_RULE_SETUP
-#line 181 "lexer.l"
+#line 181 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ARITH",yytext,"operator"); }
 	YY_BREAK
 case 86:
 YY_RULE_SETUP
-#line 182 "lexer.l"
+#line 182 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_RELAT",yytext,"operator"); }
 	YY_BREAK
 case 87:
 YY_RULE_SETUP
-#line 183 "lexer.l"
+#line 183 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_RELAT",yytext,"operator"); }
 	YY_BREAK
 case 88:
 YY_RULE_SETUP
-#line 184 "lexer.l"
+#line 184 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_ASSIGN",yytext,"operator"); }
 	YY_BREAK
 case 89:
 YY_RULE_SETUP
-#line 185 "lexer.l"
+#line 185 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_LOGICAL",yytext,"operator"); }
 	YY_BREAK
 case 90:
 YY_RULE_SETUP
-#line 186 "lexer.l"
+#line 186 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_BITWISE",yytext,"operator"); }
 	YY_BREAK
 case 91:
 YY_RULE_SETUP
-#line 187 "lexer.l"
+#line 187 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_BITWISE",yytext,"operator"); }
 	YY_BREAK
 case 92:
 YY_RULE_SETUP
-#line 188 "lexer.l"
+#line 188 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_BITWISE",yytext,"operator"); }
 	YY_BREAK
 case 93:
 YY_RULE_SETUP
-#line 189 "lexer.l"
+#line 189 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_BITWISE",yytext,"operator"); }
 	YY_BREAK
 case 94:
 YY_RULE_SETUP
-#line 190 "lexer.l"
+#line 190 "p1/lexer.l"
 { cnt_op++; print_token(MAGENTA,"OP_TERNARY",yytext,"operator"); }
 	YY_BREAK
 /* symbols */
 case 95:
 YY_RULE_SETUP
-#line 193 "lexer.l"
+#line 193 "p1/lexer.l"
 { cnt_sym++; print_token(CYAN,"LPAREN",yytext,"symbol"); }
 	YY_BREAK
 case 96:
 YY_RULE_SETUP
-#line 194 "lexer.l"
+#line 194 "p1/lexer.l"
 { cnt_sym++; print_token(CYAN,"RPAREN",yytext,"symbol"); }
 	YY_BREAK
 case 97:
 YY_RULE_SETUP
-#line 195 "lexer.l"
+#line 195 "p1/lexer.l"
 { cnt_sym++; print_token(CYAN,"LBRACE",yytext,"symbol"); }
 	YY_BREAK
 case 98:
 YY_RULE_SETUP
-#line 196 "lexer.l"
+#line 196 "p1/lexer.l"
 { cnt_sym++; print_token(CYAN,"RBRACE",yytext,"symbol"); }
 	YY_BREAK
 case 99:
 YY_RULE_SETUP
-#line 197 "lexer.l"
+#line 197 "p1/lexer.l"
 { cnt_sym++; print_token(CYAN,"LBRACKET",yytext,"symbol"); }
 	YY_BREAK
 case 100:
 YY_RULE_SETUP
-#line 198 "lexer.l"
+#line 198 "p1/lexer.l"
 { cnt_sym++; print_token(CYAN,"RBRACKET",yytext,"symbol"); }
 	YY_BREAK
 case 101:
 YY_RULE_SETUP
-#line 199 "lexer.l"
+#line 199 "p1/lexer.l"
 { cnt_sym++; print_token(CYAN,"SEMICOLON",yytext,"symbol"); }
 	YY_BREAK
 case 102:
 YY_RULE_SETUP
-#line 200 "lexer.l"
+#line 200 "p1/lexer.l"
 { cnt_sym++; print_token(CYAN,"COLON",yytext,"symbol"); }
 	YY_BREAK
 case 103:
 YY_RULE_SETUP
-#line 201 "lexer.l"
+#line 201 "p1/lexer.l"
 { cnt_sym++; print_token(CYAN,"COMMA",yytext,"symbol"); }
 	YY_BREAK
 case 104:
 YY_RULE_SETUP
-#line 202 "lexer.l"
+#line 202 "p1/lexer.l"
 { cnt_sym++; print_token(CYAN,"ELLIPSIS",yytext,"symbol"); }
 	YY_BREAK
 case 105:
 YY_RULE_SETUP
-#line 203 "lexer.l"
+#line 203 "p1/lexer.l"
 { cnt_sym++; print_token(CYAN,"DOT",yytext,"symbol"); }
 	YY_BREAK
 case 106:
 /* rule 106 can match eol */
 YY_RULE_SETUP
-#line 205 "lexer.l"
+#line 205 "p1/lexer.l"
 { line_num++; }
 	YY_BREAK
 case 107:
 YY_RULE_SETUP
-#line 206 "lexer.l"
+#line 206 "p1/lexer.l"
 { }
 	YY_BREAK
 case 108:
 YY_RULE_SETUP
-#line 208 "lexer.l"
+#line 208 "p1/lexer.l"
 {
     fprintf(stderr, RED "  ERROR line %d: Unknown character '%s'\n" RESET,
             line_num, yytext);
@@ -1532,10 +1534,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 109:
 YY_RULE_SETUP
-#line 214 "lexer.l"
+#line 214 "p1/lexer.l"
 ECHO;
 	YY_BREAK
-#line 1539 "lex.yy.c"
+#line 1540 "p1/lex.yy.c"
 case YY_STATE_EOF(INITIAL):
 case YY_STATE_EOF(LINE_CMT):
 	yyterminate();
@@ -1723,7 +1725,7 @@ static int yy_get_next_buffer (void)
 
 	else
 		{
-			int num_to_read =
+			yy_size_t num_to_read =
 			YY_CURRENT_BUFFER_LVALUE->yy_buf_size - number_to_move - 1;
 
 		while ( num_to_read <= 0 )
@@ -1737,7 +1739,7 @@ static int yy_get_next_buffer (void)
 
 			if ( b->yy_is_our_buffer )
 				{
-				int new_size = b->yy_buf_size * 2;
+				yy_size_t new_size = b->yy_buf_size * 2;
 
 				if ( new_size <= 0 )
 					b->yy_buf_size += b->yy_buf_size / 8;
@@ -1795,7 +1797,7 @@ static int yy_get_next_buffer (void)
 
 	if (((yy_n_chars) + number_to_move) > YY_CURRENT_BUFFER_LVALUE->yy_buf_size) {
 		/* Extend the array by 50%, plus the number we really need. */
-		int new_size = (yy_n_chars) + number_to_move + ((yy_n_chars) >> 1);
+		yy_size_t new_size = (yy_n_chars) + number_to_move + ((yy_n_chars) >> 1);
 		YY_CURRENT_BUFFER_LVALUE->yy_ch_buf = (char *) yyrealloc(
 			(void *) YY_CURRENT_BUFFER_LVALUE->yy_ch_buf, (yy_size_t) new_size  );
 		if ( ! YY_CURRENT_BUFFER_LVALUE->yy_ch_buf )
@@ -1899,7 +1901,7 @@ static int yy_get_next_buffer (void)
 
 		else
 			{ /* need more input */
-			int offset = (int) ((yy_c_buf_p) - (yytext_ptr));
+			yy_size_t offset = (yy_c_buf_p) - (yytext_ptr);
 			++(yy_c_buf_p);
 
 			switch ( yy_get_next_buffer(  ) )
@@ -2270,12 +2272,12 @@ YY_BUFFER_STATE yy_scan_string (const char * yystr )
  * 
  * @return the newly allocated buffer state object.
  */
-YY_BUFFER_STATE yy_scan_bytes  (const char * yybytes, int  _yybytes_len )
+YY_BUFFER_STATE yy_scan_bytes  (const char * yybytes, yy_size_t  _yybytes_len )
 {
 	YY_BUFFER_STATE b;
 	char *buf;
 	yy_size_t n;
-	int i;
+	yy_size_t i;
     
 	/* Get memory for full buffer, including space for trailing EOB's. */
 	n = (yy_size_t) (_yybytes_len + 2);
@@ -2317,7 +2319,7 @@ static void yynoreturn yy_fatal_error (const char* msg )
 	do \
 		{ \
 		/* Undo effects of setting up yytext. */ \
-        int yyless_macro_arg = (n); \
+        yy_size_t yyless_macro_arg = (n); \
         YY_LESS_LINENO(yyless_macro_arg);\
 		yytext[yyleng] = (yy_hold_char); \
 		(yy_c_buf_p) = yytext + yyless_macro_arg; \
@@ -2357,7 +2359,7 @@ FILE *yyget_out  (void)
 /** Get the length of the current token.
  * 
  */
-int yyget_leng  (void)
+yy_size_t yyget_leng  (void)
 {
         return yyleng;
 }
@@ -2507,7 +2509,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 214 "lexer.l"
+#line 214 "p1/lexer.l"
 
 
 int main(int argc, char *argv[])
