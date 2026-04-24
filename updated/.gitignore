@@ -1,0 +1,23 @@
+# Build artifacts
+build/
+*.o
+*.a
+*.so
+
+# Generated parser/lexer files
+src/lex.yy.c
+src/parser.tab.c
+src/parser.tab.h
+src/parser.output
+
+# IDE and system files
+.DS_Store
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# Executables
+*.exe
+*.out

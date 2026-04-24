@@ -748,3 +748,9 @@ void icg_write_file(const ICGCtx *ctx, const char *path)
     fclose(fp);
     printf(C_GREEN "  TAC written to: %s\n" C_RESET, path);
 }
+
+/* ════════════════════════════════════════════════════════════
+ *  PHASE 5 — CODE OPTIMIZATION  (opt.c included here)
+ *  Must be included after icg.c to access TACInstr/ICGCtx
+ * ════════════════════════════════════════════════════════════*/
+#include "opt.c"

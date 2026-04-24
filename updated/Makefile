@@ -1,9 +1,9 @@
 # ============================================================
-#  Makefile — Compiler Design Project (Phase 1, 2, 3)
+#  Makefile — Compiler Design Project (Phase 1-5)
 #  Install : sudo apt install flex bison gcc make
-#  Usage   : make          → build everything
-#            make test     → run both phases on demo.c
-#            make clean    → remove generated files
+#  Usage   : make              → build everything
+#            make test FILE=demo2.c → test on specific file
+#            make clean          → remove generated files
 # ============================================================
 
 CC    = gcc
@@ -11,52 +11,73 @@ CFLAGS = -Wall -Wno-unused-function -g
 FLEX  = flex
 BISON = bison
 FLEXLIB = $(shell uname -s | grep -q Darwin && echo "" || echo "-lfl")
+INCLUDE = -Iinclude
 
-P1_DIR = p1
-P2_DIR = p2
+SRC_DIR = src
+BUILD_DIR = build
+TEST_DIR = test
 
-.PHONY: all phase1 phase2 test clean
+# Phase 1 targets
+PHASE1 = $(BUILD_DIR)/lexer
+
+# Phase 2-5 targets
+PHASE2 = $(BUILD_DIR)/parser
+
+# Default test file
+FILE ?= demo2.c
+
+.PHONY: all phase1 phase2 test test-verbose clean
 
 all: phase1 phase2
 
-# ── Phase 1 ──────────────────────────────────────────────────
-phase1: $(P1_DIR)/lexer
+# ── Phase 1 (parser includes lexer) ──────────────────────────
+phase1: phase2
 
-$(P1_DIR)/lex.yy.c: $(P1_DIR)/lexer.l
+# ── Phase 2 + 3 + 4 + 5 ──────────────────────────────────────
+phase2: $(PHASE2)
+
+$(BUILD_DIR)/parser.tab.c $(BUILD_DIR)/parser.tab.h: $(SRC_DIR)/parser.y
+	@mkdir -p $(BUILD_DIR)
+	$(BISON) -d -o $(BUILD_DIR)/parser.tab.c $<
+
+$(BUILD_DIR)/lex.yy.c: $(SRC_DIR)/lexer.l $(BUILD_DIR)/parser.tab.h
 	$(FLEX) -o $@ $<
 
-$(P1_DIR)/lexer: $(P1_DIR)/lex.yy.c
-	$(CC) $(CFLAGS) -o $@ $< $(FLEXLIB)
-
-# ── Phase 2 + 3 ──────────────────────────────────────────────
-phase2: $(P2_DIR)/parser
-
-$(P2_DIR)/parser.tab.c $(P2_DIR)/parser.tab.h: $(P2_DIR)/parser.y
-	$(BISON) -d -o $(P2_DIR)/parser.tab.c $<
-
-$(P2_DIR)/lex.yy.c: $(P2_DIR)/lexer.l $(P2_DIR)/parser.tab.h
-	$(FLEX) -o $@ $<
-
-$(P2_DIR)/parser: $(P2_DIR)/parser.tab.c $(P2_DIR)/lex.yy.c $(P2_DIR)/icg.c
-	$(CC) $(CFLAGS) -I$(P2_DIR) -o $@ \
-	    $(P2_DIR)/parser.tab.c $(P2_DIR)/lex.yy.c $(P2_DIR)/icg.c $(FLEXLIB)
+$(PHASE2): $(BUILD_DIR)/parser.tab.c $(BUILD_DIR)/lex.yy.c $(SRC_DIR)/icg.c
+	$(CC) $(CFLAGS) $(INCLUDE) -o $@ \
+	    $(BUILD_DIR)/parser.tab.c $(BUILD_DIR)/lex.yy.c $(SRC_DIR)/icg.c $(FLEXLIB)
 
 # ── Test ─────────────────────────────────────────────────────
 test: all
 	@echo ""
 	@echo "============================================================"
-	@echo "  PHASE 1 — LEXICAL ANALYSIS on demo.c"
+	@echo "  RUNNING COMPILER ON: $(FILE)"
 	@echo "============================================================"
-	./$(P1_DIR)/lexer $(P2_DIR)/demo.c
 	@echo ""
-	@echo "============================================================"
-	@echo "  PHASE 2+3 — PARSER + AST + SEMANTIC ANALYSIS on demo.c"
-	@echo "============================================================"
-	./$(P2_DIR)/parser $(P2_DIR)/demo.c
+	@echo "PHASE 1-5 — LEXER + PARSER + AST + SEMANTIC + ICG + OPTIMIZATION"
+	@echo "────────────────────────────────────────────────────────────"
+	$(PHASE2) $(TEST_DIR)/$(FILE)
 
 # ── Clean ────────────────────────────────────────────────────
 clean:
-	rm -f $(P1_DIR)/lex.yy.c $(P1_DIR)/lexer
-	rm -f $(P2_DIR)/lex.yy.c $(P2_DIR)/parser.tab.c \
-	      $(P2_DIR)/parser.tab.h $(P2_DIR)/parser \
-	      $(P2_DIR)/parser.output
+	rm -rf $(BUILD_DIR)
+	rm -f $(SRC_DIR)/parser.output
+
+.PHONY: help
+help:
+	@echo ""
+	@echo "Compiler Design Project — Makefile Targets"
+	@echo "==========================================="
+	@echo ""
+	@echo "make all              — Build all phases"
+	@echo "make phase1           — Build Phase 1 (Lexer) only"
+	@echo "make phase2           — Build Phase 2-5 (Parser+) only"
+	@echo "make test             — Run compiler on test/demo2.c"
+	@echo "make test FILE=X.c    — Run compiler on test/X.c"
+	@echo "make clean            — Remove build artifacts"
+	@echo "make help             — Show this help message"
+	@echo ""
+	@echo "Example:"
+	@echo "  make test FILE=demo.c"
+	@echo "  make test FILE=test_trivial.c"
+	@echo ""
