@@ -706,8 +706,7 @@ int main(int argc, char *argv[])
         ICGCtx *icg_ctx = icg_init();
         icg_generate(icg_ctx, parse_root);
         /* ── PHASE 5: Code Optimization ──────────────────────── */
-        opt_optimize(icg_ctx);
-        icg_print(icg_ctx);
+        opt_optimize(icg_ctx);  /* prints report + optimized TAC */
         /* Optional: write TAC to file
         icg_write_file(icg_ctx, "output.tac");
         */
