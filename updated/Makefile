@@ -13,7 +13,7 @@ BISON = bison
 FLEXLIB = $(shell uname -s | grep -q Darwin && echo "" || echo "-lfl")
 INCLUDE = -Iinclude
 
-SRC_DIR = src
+SRC_DIR = synthesis
 BUILD_DIR = build
 TEST_DIR = test
 
@@ -43,9 +43,9 @@ $(BUILD_DIR)/parser.tab.c $(BUILD_DIR)/parser.tab.h: $(SRC_DIR)/parser.y
 $(BUILD_DIR)/lex.yy.c: $(SRC_DIR)/lexer.l $(BUILD_DIR)/parser.tab.h
 	$(FLEX) -o $@ $<
 
-$(PHASE2): $(BUILD_DIR)/parser.tab.c $(BUILD_DIR)/lex.yy.c $(SRC_DIR)/icg.c
+$(PHASE2): $(BUILD_DIR)/parser.tab.c $(BUILD_DIR)/lex.yy.c $(SRC_DIR)/icg.c $(SRC_DIR)/tcg.c
 	$(CC) $(CFLAGS) $(INCLUDE) -o $@ \
-	    $(BUILD_DIR)/parser.tab.c $(BUILD_DIR)/lex.yy.c $(SRC_DIR)/icg.c $(FLEXLIB)
+	    $(BUILD_DIR)/parser.tab.c $(BUILD_DIR)/lex.yy.c $(SRC_DIR)/icg.c $(SRC_DIR)/tcg.c $(FLEXLIB)
 
 # ── Test ─────────────────────────────────────────────────────
 test: all
@@ -61,7 +61,7 @@ test: all
 # ── Clean ────────────────────────────────────────────────────
 clean:
 	rm -rf $(BUILD_DIR)
-	rm -f $(SRC_DIR)/parser.output
+	rm -f $(BUILD_DIR)/parser.output
 
 .PHONY: help
 help:

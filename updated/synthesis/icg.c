@@ -648,7 +648,8 @@ void icg_print(const ICGCtx *ctx)
 }
 
 /* ── free all instructions ───────────────────────────────── */
-void icg_free(ICGCtx *ctx)
+/* Clear all TAC instructions from context (does NOT free the context itself) */
+void icg_clear(ICGCtx *ctx)
 {
     if (!ctx) return;
     TACInstr *cur = ctx->head;
@@ -662,6 +663,14 @@ void icg_free(ICGCtx *ctx)
         cur = nxt;
     }
     ctx->head = ctx->tail = NULL;
+    ctx->instr_cnt = 0;
+}
+
+/* Free ICG context (heap-allocated) */
+void icg_free(ICGCtx *ctx)
+{
+    if (!ctx) return;
+    icg_clear(ctx);
     free(ctx);
 }
 

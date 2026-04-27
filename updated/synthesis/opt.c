@@ -784,6 +784,6 @@ void opt_optimize(ICGCtx *ctx)
     /* print optimised code */
     opt_print_comparison(&before, ctx);
 
-    /* clean up snapshot */
-    icg_free(&before);
+    /* clean up snapshot (before is stack-allocated) */
+    icg_clear(&before);
 }

@@ -24,7 +24,10 @@ void icg_print(const ICGCtx *ctx);
 /* Write TAC to file */
 void icg_write_file(const ICGCtx *ctx, const char *path);
 
-/* Free ICG context */
+/* Free ICG context (heap-allocated) */
 void icg_free(ICGCtx *ctx);
+
+/* Clear TAC instructions from a context (for stack-allocated contexts) */
+void icg_clear(ICGCtx *ctx);
 
 #endif /* ICG_H */
