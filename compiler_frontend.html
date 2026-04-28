@@ -1014,6 +1014,7 @@
       <button class="phase-tab active" onclick="setPhase(1)">Phase 1 — Lexer</button>
       <button class="phase-tab" onclick="setPhase(2)">Phase 2 — AST</button>
       <button class="phase-tab" onclick="setPhase(3)">Phase 2 — Semantic</button>
+      <button class="phase-tab" onclick="setPhase(4)">Phase 3 — IR</button>
     </div>
     <button class="run-btn" onclick="runAll()" id="run-btn">
       <div class="spinner" id="spinner"></div>
@@ -1114,7 +1115,7 @@
     </div>
   </div>
 
-  <!-- ═══ PHASE 2 VIEW ═══ -->
+  <!-- ═══ PHASE 3 VIEW ═══ -->
   <div class="phase-view split-view" id="phase3-view" style="grid-column:1/-1;">
 
     <!-- LEFT: Semantic Issues -->
@@ -1161,6 +1162,27 @@
       </div>
     </div>
   </div>
+  <!-- ═══ PHASE 4 VIEW ═══ -->
+  <div class="phase-view" id="phase4-view" style="grid-column:1/-1;">
+    <div class="panel" style="width:100%">
+      <div class="panel-header">
+        <div class="panel-title">
+          <div class="panel-dot dot-green"></div>
+          Intermediate Code (3-Address Code)
+        </div>
+      </div>
+      <div id="ir-area">
+        <div class="empty-state">
+          <div class="empty-icon">⚙</div>
+          <div>Intermediate code will appear here</div>
+          <div style="color:var(--text3);font-size:11px;margin-top:4px">
+            Run analysis to generate TAC
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 
 </div>
 
@@ -1178,11 +1200,6 @@
 </div>
 
 <script>
-/* ═══════════════════════════════════════════════════════════
-   COMPILER FRONT-END SIMULATION ENGINE
-   Implements real lexical analysis, AST construction, and
-   semantic analysis entirely in JavaScript.
-═══════════════════════════════════════════════════════════ */
 
 const KEYWORDS = new Set([
   'auto','break','case','char','const','continue','default','do',
@@ -1902,6 +1919,99 @@ function analyse(ast) {
   return { issues, symbols };
 }
 
+/* ── INTERMEDIATE CODE GENERATOR (TAC) ───────────────────── */
+function generateIR(ast) {
+  let tempCount = 0;
+  const code = [];
+
+  const newTemp = () => `t${++tempCount}`;
+
+  function gen(node) {
+    if (!node) return '';
+
+    switch (node.kind) {
+      case 'INT_LIT':
+      case 'FLOAT_LIT':
+      case 'IDENT':
+        return node.val;
+
+      case 'BINOP': {
+        const left = gen(node.children[0]);
+        const right = gen(node.children[1]);
+        const t = newTemp();
+        code.push(`${t} = ${left} ${node.val} ${right}`);
+        return t;
+      }
+
+      case 'ASSIGN': {
+        const left = node.children[0].val;
+        const right = gen(node.children[1]);
+        code.push(`${left} = ${right}`);
+        return left;
+      }
+
+      case 'DECL_INIT': {
+        const name = node.val;
+        const val = gen(node.children[1]);
+        code.push(`${name} = ${val}`);
+        return name;
+      }
+
+      case 'IF': {
+        const cond = gen(node.children[0]);
+        const label1 = `L${newTemp()}`;
+        const label2 = `L${newTemp()}`;
+
+        code.push(`ifFalse ${cond} goto ${label1}`);
+        gen(node.children[1]);
+
+        if (node.children[2]) {
+          code.push(`goto ${label2}`);
+          code.push(`${label1}:`);
+          gen(node.children[2]);
+          code.push(`${label2}:`);
+        } else {
+          code.push(`${label1}:`);
+        }
+        break;
+      }
+
+      case 'WHILE': {
+        const start = `L${newTemp()}`;
+        const end = `L${newTemp()}`;
+
+        code.push(`${start}:`);
+        const cond = gen(node.children[0]);
+        code.push(`ifFalse ${cond} goto ${end}`);
+        gen(node.children[1]);
+        code.push(`goto ${start}`);
+        code.push(`${end}:`);
+        break;
+      }
+
+      case 'BLOCK':
+        node.children.forEach(gen);
+        break;
+
+      case 'RETURN': {
+        if (node.children[0]) {
+          const val = gen(node.children[0]);
+          code.push(`return ${val}`);
+        } else {
+          code.push(`return`);
+        }
+        break;
+      }
+
+      default:
+        if (node.children) node.children.forEach(gen);
+    }
+  }
+
+  gen(ast);
+  return code;
+}
+
 /* ═══════════════════════════════════════════════════════════
    RENDER FUNCTIONS
 ═══════════════════════════════════════════════════════════ */
@@ -2197,6 +2307,23 @@ function countNodes(n) {
   return 1 + (n.children||[]).reduce((s,c)=>s+countNodes(c),0);
 }
 
+function renderIR(code) {
+  const area = document.getElementById('ir-area');
+
+  if (!code.length) {
+    area.innerHTML = `<div class="empty-state">No intermediate code generated</div>`;
+    return;
+  }
+
+  area.innerHTML = `
+    <div class="ast-scroll">
+      <pre style="font-family:var(--mono); font-size:13px;">
+${code.join('\n')}
+      </pre>
+    </div>
+  `;
+}
+
 /* ── RUN PIPELINE ─────────────────────────────────────────*/
 function runAll() {
   const src = document.getElementById('code-editor').value.trim();
@@ -2234,6 +2361,10 @@ function runAll() {
       const { issues, symbols } = analyse(ast);
       renderSemantic(issues, symbols);
 
+      //phase 4
+      const ir = generateIR(ast);
+      renderIR(ir);
+
       // Status bar
       const errs  = lexErrors.length + synErrors.length + issues.filter(i=>i.sev==='error').length;
       const warns = issues.filter(i=>i.sev==='warning').length;
@@ -2256,7 +2387,8 @@ function runAll() {
 const phaseLabels = {
   1: 'Phase 1 — Lexical Analysis',
   2: 'Phase 2 — Syntax Analysis & AST',
-  3: 'Phase 3 — Semantic Analysis'
+  3: 'Phase 3 — Semantic Analysis',
+  4: 'Phase 4 — Intermediate Code'
 };
 
 function setPhase(n) {
@@ -2266,6 +2398,7 @@ function setPhase(n) {
   document.getElementById('phase1-view').style.display = n===1 ? 'flex' : 'none';
   document.getElementById('phase2-view').style.display = n===2 ? 'flex' : 'none';
   document.getElementById('phase3-view').style.display = n===3 ? 'flex' : 'none';
+  document.getElementById('phase4-view').style.display = n===4 ? 'flex' : 'none';
   document.getElementById('sb-phase').textContent = phaseLabels[n];
 }
 
