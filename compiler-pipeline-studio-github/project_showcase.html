@@ -1,0 +1,1092 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Compiler Pipeline Studio</title>
+  <style>
+    :root {
+      --bg: #090b12;
+      --surface: #111723;
+      --surface-2: #151e2c;
+      --surface-3: #0c111b;
+      --border: #2f3c52;
+      --border-strong: #476078;
+      --text: #edf4ff;
+      --muted: #9eacbe;
+      --soft: #c8d4e3;
+      --teal: #55d6c2;
+      --blue: #71a7ff;
+      --amber: #ffc66d;
+      --rose: #ff8fa3;
+      --green: #8bed9f;
+      --shadow: 0 18px 45px rgba(0, 0, 0, .36);
+      --editor-font: 14px;
+      --editor-line: 20px;
+      --editor-pad: 12px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      background:
+        linear-gradient(rgba(255,255,255,.026) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px),
+        linear-gradient(180deg, #111b29 0%, var(--bg) 52%, #07090f 100%);
+      background-size: 32px 32px, 32px 32px, auto;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+    }
+
+    button, textarea, select { font: inherit; }
+
+    .wrap {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .mark {
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      border: 1px solid rgba(85, 214, 194, .45);
+      border-radius: 8px;
+      background: linear-gradient(145deg, rgba(85,214,194,.18), rgba(113,167,255,.12));
+      color: var(--teal);
+      font: 700 18px Consolas, monospace;
+      box-shadow: inset 0 0 28px rgba(85, 214, 194, .08);
+    }
+
+    h1, h2, h3, p { margin: 0; }
+    h1 { font-size: clamp(28px, 4vw, 48px); line-height: 1.02; letter-spacing: 0; }
+    h2 { font-size: 18px; line-height: 1.25; }
+    h3 { font-size: 14px; line-height: 1.35; }
+    p { color: var(--muted); line-height: 1.55; }
+
+    .eyebrow {
+      color: var(--teal);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 16px;
+      align-items: stretch;
+      margin-bottom: 14px;
+    }
+
+    .hero-main, .panel {
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      background: linear-gradient(155deg, rgba(17,23,35,.96), rgba(21,30,44,.96));
+      box-shadow: var(--shadow);
+    }
+
+    .hero-main {
+      padding: 22px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .hero-copy {
+      max-width: 780px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .hero-copy p { max-width: 760px; color: var(--soft); }
+
+    .hero-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .metric {
+      border: 1px solid #314052;
+      border-radius: 8px;
+      background: rgba(9, 13, 20, .45);
+      padding: 10px;
+      min-height: 72px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      display: block;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+
+    .metric strong {
+      color: var(--text);
+      display: block;
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    .pipeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .phase-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(12, 17, 27, .78);
+      padding: 13px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: start;
+    }
+
+    .phase-number {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: rgba(113, 167, 255, .14);
+      border: 1px solid rgba(113, 167, 255, .34);
+      color: var(--blue);
+      font-weight: 800;
+    }
+
+    .phase-card:nth-child(2) .phase-number {
+      background: rgba(255, 198, 109, .13);
+      border-color: rgba(255, 198, 109, .34);
+      color: var(--amber);
+    }
+
+    .phase-card:nth-child(3) .phase-number {
+      background: rgba(85, 214, 194, .13);
+      border-color: rgba(85, 214, 194, .34);
+      color: var(--teal);
+    }
+
+    .phase-copy { display: grid; gap: 4px; }
+
+    .phase-state {
+      border: 1px solid #3a495d;
+      border-radius: 999px;
+      color: var(--muted);
+      background: #0a0f18;
+      padding: 4px 8px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .phase-state.ok { color: var(--green); border-color: rgba(139,237,159,.38); }
+    .phase-state.warn { color: var(--amber); border-color: rgba(255,198,109,.42); }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .panel { padding: 14px; }
+
+    .panel-head, .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .chips {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .chip {
+      border: 1px solid #38475b;
+      border-radius: 999px;
+      color: #c6d2e0;
+      background: rgba(12, 17, 27, .68);
+      padding: 4px 8px;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .chip.good { color: var(--green); border-color: rgba(139,237,159,.35); }
+    .chip.hot { color: var(--amber); border-color: rgba(255,198,109,.38); }
+
+    .editor-wrap {
+      display: grid;
+      grid-template-columns: 56px 1fr;
+      min-height: 360px;
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      overflow: hidden;
+      background: #080d15;
+      position: relative;
+    }
+
+    .line-gutter {
+      margin: 0;
+      padding: var(--editor-pad) 10px;
+      border-right: 1px solid #2f3e52;
+      background: #0b111c;
+      color: #7f8da1;
+      font: var(--editor-font)/var(--editor-line) Consolas, "Cascadia Mono", monospace;
+      overflow: hidden;
+      text-align: right;
+      user-select: none;
+      white-space: pre;
+    }
+
+    #src {
+      width: 100%;
+      min-height: 360px;
+      resize: vertical;
+      border: 0;
+      outline: 0;
+      border-radius: 0;
+      padding: var(--editor-pad);
+      color: #e9f2ff;
+      background: transparent;
+      caret-color: var(--teal);
+      font: var(--editor-font)/var(--editor-line) Consolas, "Cascadia Mono", monospace;
+      overflow: auto;
+      position: relative;
+      z-index: 2;
+      tab-size: 2;
+    }
+
+    .current-line {
+      position: absolute;
+      top: 0;
+      left: 56px;
+      right: 0;
+      height: var(--editor-line);
+      background: rgba(85, 214, 194, .12);
+      border-top: 1px solid rgba(85, 214, 194, .22);
+      border-bottom: 1px solid rgba(85, 214, 194, .22);
+      pointer-events: none;
+      z-index: 1;
+      transition: transform .08s ease-out;
+    }
+
+    .btns {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    button {
+      border: 1px solid transparent;
+      border-radius: 8px;
+      padding: 9px 13px;
+      cursor: pointer;
+      color: #061018;
+      background: var(--teal);
+      font-weight: 800;
+      transition: transform .12s ease, border-color .12s ease, background .12s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:disabled { opacity: .55; cursor: progress; transform: none; }
+    button.alt { color: var(--text); background: #202b3b; border-color: #3c4e63; }
+    button.good { color: #07120c; background: var(--green); }
+    button.ghost { color: var(--soft); background: transparent; border-color: #3c4e63; }
+
+    select {
+      width: 100%;
+      border: 1px solid #3c4e63;
+      border-radius: 8px;
+      background: #0b111c;
+      color: var(--text);
+      padding: 10px;
+    }
+
+    .side-stack { display: grid; gap: 12px; }
+    .compact-panel {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: rgba(12, 17, 27, .65);
+      padding: 12px;
+    }
+
+    .compact-panel h3 { margin-bottom: 6px; color: var(--text); }
+    .compact-panel p { font-size: 13px; }
+
+    .status {
+      margin-top: 10px;
+      min-height: 24px;
+      color: var(--blue);
+      font-weight: 800;
+    }
+
+    .status.ok { color: var(--green); }
+    .status.bad { color: var(--rose); }
+
+    .results { margin-bottom: 24px; }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+
+    .tab {
+      color: var(--soft);
+      background: #111925;
+      border: 1px solid #344357;
+    }
+
+    .tab.active {
+      color: #071018;
+      background: var(--amber);
+      border-color: var(--amber);
+    }
+
+    .view { display: none; }
+    .view.active { display: block; }
+
+    .output-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+      gap: 12px;
+    }
+
+    .out {
+      border: 1px solid #2f3e52;
+      border-radius: 8px;
+      background: #070c14;
+      color: #dbe8f7;
+      padding: 12px;
+      max-height: 470px;
+      overflow: auto;
+      font: 13px/1.45 Consolas, "Cascadia Mono", monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .ast {
+      max-height: 560px;
+      white-space: normal;
+    }
+
+    .ast ul {
+      list-style: none;
+      padding-left: 22px;
+      margin: 0;
+    }
+
+    .ast li {
+      position: relative;
+      margin: 8px 0;
+    }
+
+    .ast li::before {
+      content: "";
+      position: absolute;
+      left: -13px;
+      top: 14px;
+      width: 11px;
+      border-top: 1px solid #475973;
+    }
+
+    .node {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      max-width: 100%;
+      border: 1px solid #3c4f68;
+      border-radius: 8px;
+      background: #101826;
+      padding: 6px 9px;
+      cursor: default;
+    }
+
+    .node[data-line] { cursor: pointer; }
+
+    .node[data-line]:hover {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 2px rgba(85,214,194,.14);
+      background: #132033;
+    }
+
+    .node.adjusted {
+      border-color: rgba(255, 198, 109, .5);
+    }
+
+    .edge {
+      flex: 0 0 auto;
+      border: 1px solid #50617a;
+      border-radius: 999px;
+      color: #b9c5d6;
+      padding: 1px 6px;
+      font-size: 10px;
+      line-height: 1.5;
+    }
+
+    .kind { color: var(--teal); font-weight: 800; }
+    .val { color: var(--amber); }
+    .ln { color: #92a3b8; font-size: 11px; }
+
+    .token-table {
+      width: 100%;
+      border-collapse: collapse;
+      font: 12px/1.45 Consolas, "Cascadia Mono", monospace;
+    }
+
+    .token-table th, .token-table td {
+      border-bottom: 1px solid #253246;
+      padding: 7px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    .token-table th {
+      color: var(--amber);
+      background: #0d1420;
+      position: sticky;
+      top: 0;
+    }
+
+    .asm .k { color: #7cb1ff; }
+    .asm .r { color: #ffc66d; }
+    .asm .c { color: #7f8da1; }
+    .asm .n { color: #8bed9f; }
+
+    @media (max-width: 1100px) {
+      .hero, .workspace, .output-grid { grid-template-columns: 1fr; }
+      .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 640px) {
+      .wrap { padding: 12px; }
+      .topbar, .panel-head, .toolbar { align-items: flex-start; flex-direction: column; }
+      .metrics { grid-template-columns: 1fr; }
+      .phase-card { grid-template-columns: auto 1fr; }
+      .phase-state { grid-column: 1 / -1; justify-self: start; }
+      .editor-wrap { grid-template-columns: 48px 1fr; }
+      .current-line { left: 48px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="topbar">
+      <div class="brand">
+        <div class="mark">C</div>
+        <div>
+          <div class="eyebrow">Compiler Design Project</div>
+          <h2>Pipeline Studio</h2>
+        </div>
+      </div>
+      <div class="chips">
+        <span class="chip" id="apiChip">Backend: localhost:9000</span>
+        <span class="chip">WSL compiler runtime</span>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-main">
+        <div class="hero-copy">
+          <div class="eyebrow">Three-phase compiler visualizer</div>
+          <h1>Trace C code from tokens to AST, semantic checks, optimization, and x86-64 output.</h1>
+          <p>This dashboard turns the compiler backend into a guided project showcase: source code on the left, pipeline evidence on the right, and clickable AST nodes that jump back to their source lines.</p>
+          <div class="hero-actions">
+            <button id="heroRun">Run All Phases</button>
+            <button class="ghost" id="heroDemo">Reset Demo</button>
+          </div>
+        </div>
+        <div class="metrics" aria-label="Run metrics">
+          <div class="metric"><span>Tokens</span><strong id="metricTokens">-</strong></div>
+          <div class="metric"><span>AST Nodes</span><strong id="metricAst">-</strong></div>
+          <div class="metric"><span>Issues</span><strong id="metricIssues">-</strong></div>
+          <div class="metric"><span>Assembly Lines</span><strong id="metricAsm">-</strong></div>
+        </div>
+      </div>
+
+      <div class="pipeline" aria-label="Compiler phases">
+        <article class="phase-card" data-phase="1">
+          <div class="phase-number">1</div>
+          <div class="phase-copy">
+            <h3>Lexical Analysis</h3>
+            <p>Flex scanner groups raw characters into tokens, lexemes, keywords, identifiers, literals, delimiters, and operators.</p>
+          </div>
+          <span class="phase-state">Waiting</span>
+        </article>
+        <article class="phase-card" data-phase="2">
+          <div class="phase-number">2</div>
+          <div class="phase-copy">
+            <h3>AST + Semantic Analysis</h3>
+            <p>The parser builds hierarchy, then semantic analysis checks declarations, type usage, function calls, and scope behavior.</p>
+          </div>
+          <span class="phase-state">Waiting</span>
+        </article>
+        <article class="phase-card" data-phase="3">
+          <div class="phase-number">3</div>
+          <div class="phase-copy">
+            <h3>Optimization + Target Code</h3>
+            <p>Intermediate code is optimized and converted into x86-64 assembly so the compiler journey ends in executable form.</p>
+          </div>
+          <span class="phase-state">Waiting</span>
+        </article>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <div class="panel">
+        <div class="toolbar">
+          <div>
+            <div class="eyebrow">Source Input</div>
+            <h2>C Program Editor</h2>
+          </div>
+          <div class="chips">
+            <span class="chip" id="lineCount">1 line</span>
+            <span class="chip hot" id="cursorLine">Ln 1</span>
+          </div>
+        </div>
+        <div class="editor-wrap">
+          <pre id="lineGutter" class="line-gutter">1</pre>
+          <div id="currentLine" class="current-line"></div>
+          <textarea id="src" wrap="off" spellcheck="false" aria-label="C source editor"></textarea>
+        </div>
+        <div class="btns">
+          <button id="run">Run All Phases</button>
+          <button class="alt" id="demo">Load Demo</button>
+          <button class="good" id="saveSample">Save Sample</button>
+        </div>
+        <div class="status" id="status">Ready.</div>
+      </div>
+
+      <aside class="side-stack">
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="eyebrow">Sample Bank</div>
+              <h2>Reusable Programs</h2>
+            </div>
+          </div>
+          <select id="saved" aria-label="Saved samples"></select>
+          <div class="btns">
+            <button class="alt" id="loadSaved">Load Selected</button>
+            <button class="ghost" id="deleteSaved">Delete Selected</button>
+          </div>
+        </div>
+
+        <div class="compact-panel">
+          <h3>AST source mapping</h3>
+          <p>Compiler line metadata is normalized against the editor text before rendering. Function nodes target their declaration line, control-flow nodes target their condition line, and block nodes target the nearest useful source line.</p>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head">
+            <div>
+              <div class="eyebrow">Export</div>
+              <h2>Artifacts</h2>
+            </div>
+          </div>
+          <div class="btns">
+            <button class="alt" id="dlJson">Report JSON</button>
+            <button class="alt" id="dlAsm">Assembly .s</button>
+            <button class="alt" id="dlText">Full Log</button>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="panel results">
+      <div class="panel-head">
+        <div>
+          <div class="eyebrow">Compiler Evidence</div>
+          <h2>Phase Outputs</h2>
+        </div>
+        <div class="chips">
+          <span class="chip" id="astMapChip">AST map: waiting</span>
+          <span class="chip" id="lastRunChip">No run yet</span>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab active" data-v="v1">Phase 1 Tokens</button>
+        <button class="tab" data-v="v2">Phase 2 AST + Semantic</button>
+        <button class="tab" data-v="v3">Phase 3 Optimization + TCG</button>
+      </div>
+
+      <div class="view active" id="v1">
+        <div id="lex" class="out">No lexical output yet.</div>
+      </div>
+
+      <div class="view" id="v2">
+        <div class="output-grid">
+          <div>
+            <div class="panel-head">
+              <h3>AST Tree</h3>
+              <span class="chip">Click a node to focus source</span>
+            </div>
+            <div id="astTree" class="out ast">AST will appear here.</div>
+          </div>
+          <div>
+            <div class="panel-head">
+              <h3>Semantic Analysis</h3>
+            </div>
+            <div id="semantic" class="out">Semantic report will appear here.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="view" id="v3">
+        <div class="output-grid">
+          <div>
+            <div class="panel-head">
+              <h3>Optimization Report</h3>
+            </div>
+            <div id="opt" class="out">Optimization report will appear here.</div>
+            <div class="panel-head" style="margin-top:12px">
+              <h3>TCG Console</h3>
+            </div>
+            <div id="tcg" class="out">TCG console output will appear here.</div>
+          </div>
+          <div>
+            <div class="panel-head">
+              <h3>Generated Assembly</h3>
+            </div>
+            <div id="asm" class="out asm">Assembly will appear here.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+const demo=`int compare(int a, int b) {\n  if (a > b) return 1;\n  else if (a < b) return -1;\n  return 0;\n}\n\nint main(void) {\n  return compare(10, 20);\n}`;
+
+const src=document.getElementById("src"), status=document.getElementById("status");
+const lex=document.getElementById("lex"), semantic=document.getElementById("semantic"), astTree=document.getElementById("astTree");
+const opt=document.getElementById("opt"), tcg=document.getElementById("tcg"), asm=document.getElementById("asm");
+const saved=document.getElementById("saved"), lineGutter=document.getElementById("lineGutter"), currentLine=document.getElementById("currentLine");
+const lineCount=document.getElementById("lineCount"), cursorLine=document.getElementById("cursorLine");
+const metricTokens=document.getElementById("metricTokens"), metricAst=document.getElementById("metricAst"), metricIssues=document.getElementById("metricIssues"), metricAsm=document.getElementById("metricAsm");
+const apiChip=document.getElementById("apiChip"), astMapChip=document.getElementById("astMapChip"), lastRunChip=document.getElementById("lastRunChip");
+const runBtn=document.getElementById("run"), heroRun=document.getElementById("heroRun");
+let lastData=null;
+
+const TREE_TEE="\u251c\u2500\u2500", TREE_CORNER="\u2514\u2500\u2500";
+const BAD_TEE="\u00e2\u201d\u0153\u00e2\u201d\u20ac\u00e2\u201d\u20ac";
+const BAD_CORNER="\u00e2\u201d\u201d\u00e2\u201d\u20ac\u00e2\u201d\u20ac";
+const BAD_PIPE="\u00e2\u201d\u201a";
+const branchMarkers=[TREE_TEE,TREE_CORNER,BAD_TEE,BAD_CORNER];
+
+function setStatus(t,c=""){ status.className="status "+c; status.textContent=t; }
+function esc(s){ return String(s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;"); }
+function escapeRegex(s){ return String(s ?? "").replace(/[.*+?^${}()|[\]\\]/g,"\\$&"); }
+function download(name,content){ const b=new Blob([content],{type:"text/plain"}); const a=document.createElement("a"); a.href=URL.createObjectURL(b); a.download=name; a.click(); URL.revokeObjectURL(a.href); }
+function showView(id){
+  document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active",x.dataset.v===id));
+  document.querySelectorAll(".view").forEach(v=>v.classList.toggle("active",v.id===id));
+}
+function sourceLineCount(){ return src.value.split("\n").length || 1; }
+function clampLine(line){ return Math.min(sourceLineCount(), Math.max(1, parseInt(line,10)||1)); }
+
+function renderLexTable(tokensText){
+  const lines=(tokensText||"").trim().split("\n").filter(Boolean);
+  metricTokens.textContent=lines.length ? String(lines.length) : "-";
+  if(!lines.length){ lex.textContent="No lexical output."; return; }
+  let html='<table class="token-table"><thead><tr><th>Line</th><th>Token</th><th>Lexeme</th></tr></thead><tbody>';
+  for(const ln of lines){
+    const p=ln.includes("\t") ? ln.split("\t") : ln.trim().split(/\s+/,3);
+    html+=`<tr><td>${esc(p[0]||"")}</td><td>${esc(p[1]||"")}</td><td>${esc(p.slice(2).join("\t"))}</td></tr>`;
+  }
+  html+="</tbody></table>";
+  lex.innerHTML=html;
+}
+
+function findBranch(clean){
+  let best=null;
+  for(const marker of branchMarkers){
+    const index=clean.indexOf(marker);
+    if(index>=0 && (!best || index<best.index)) best={index,marker};
+  }
+  return best;
+}
+
+function parseAstLines(astText){
+  return (astText||"").split("\n").map(raw=>{
+    const clean=raw.replace(/\x1B\[[0-?]*[ -/]*[@-~]/g,"");
+    const branch=findBranch(clean);
+    if(!branch) return null;
+    const prefix=clean.slice(0,branch.index).replaceAll(BAD_PIPE,"\u2502");
+    const depth=Math.max(0, Math.round(prefix.length / 4) - 1);
+    const text=clean.slice(branch.index + branch.marker.length).trim();
+    return {depth,text};
+  }).filter(Boolean);
+}
+
+function parseNodeText(text){
+  const m=text.match(/^([A-Z_]+)\s*(?:\((.*?)\))?\s*(?:\[line\s+(\d+)\])?/i);
+  return {
+    kind: m ? m[1] : (text.split(/\s+/)[0] || "NODE"),
+    val: m ? (m[2] || "") : "",
+    rawLn: m && m[3] ? Number(m[3]) : null,
+    ln: m && m[3] ? Number(m[3]) : null,
+    children: []
+  };
+}
+
+function minChildLine(node){
+  const lines=node.children.map(c=>c.ln).filter(Boolean);
+  return lines.length ? Math.min(...lines) : null;
+}
+
+function sourceLines(){ return src.value.split("\n"); }
+
+function findFunctionLine(name){
+  const cleanName=String(name || "").replace(/^\*/,"");
+  if(!cleanName) return null;
+  const lines=sourceLines();
+  const nameRe=new RegExp("\\b"+escapeRegex(cleanName)+"\\s*\\(");
+  const typeRe=/^\s*(?:static\s+|const\s+|unsigned\s+|signed\s+|long\s+|short\s+)*(?:void|int|char|float|double|long|short|unsigned|signed)\b/;
+  for(let i=0;i<lines.length;i++){
+    if(!nameRe.test(lines[i])) continue;
+    let header="";
+    for(let j=i;j<Math.min(lines.length,i+8);j++){
+      header += " " + lines[j].trim();
+      const brace=header.indexOf("{");
+      const semi=header.indexOf(";");
+      if(brace>=0 && (semi<0 || brace<semi) && typeRe.test(lines[i])) return i+1;
+      if(semi>=0 && (brace<0 || semi<brace)) break;
+    }
+  }
+  return null;
+}
+
+function findOpeningBraceLine(startLine){
+  const lines=sourceLines();
+  for(let i=Math.max(0,(startLine||1)-1);i<Math.min(lines.length,(startLine||1)+10);i++){
+    if(lines[i].includes("{")) return i+1;
+  }
+  return null;
+}
+
+function normalizeAstLines(root){
+  let adjusted=0;
+  function visit(node,parent){
+    if(node.kind==="FUNC_DEF"){
+      const mapped=findFunctionLine(node.val);
+      if(mapped && mapped!==node.ln){ node.ln=mapped; adjusted++; }
+    }
+
+    node.children.forEach(child=>visit(child,node));
+
+    let mapped=null;
+    if(parent && parent.kind==="FUNC_DEF" && ["TYPE","PARAM_LIST","PARAM"].includes(node.kind)){
+      mapped=parent.ln;
+    }else if(["IF","WHILE","FOR","DO_WHILE"].includes(node.kind)){
+      mapped=minChildLine(node) || node.ln;
+    }else if(node.kind==="BLOCK"){
+      if(parent && parent.kind==="FUNC_DEF") mapped=findOpeningBraceLine(parent.ln) || minChildLine(node) || parent.ln;
+      else mapped=minChildLine(node) || node.ln;
+    }else if(!node.ln){
+      mapped=minChildLine(node);
+    }
+    if(mapped && mapped!==node.ln){ node.ln=clampLine(mapped); adjusted++; }
+    if(node.ln) node.ln=clampLine(node.ln);
+  }
+  root.children.forEach(child=>visit(child,root));
+  return adjusted;
+}
+
+function edgeFor(parentKind,index){
+  if(["BINOP","ASSIGN","IF","WHILE","DO_WHILE","FOR","INDEX","TERNARY"].includes(parentKind)){
+    if(index===0) return "LEFT";
+    if(index===1) return "RIGHT";
+    return "CH"+(index+1);
+  }
+  return "";
+}
+
+function renderAstTree(astText){
+  const parsed=parseAstLines(astText);
+  metricAst.textContent=parsed.length ? String(parsed.length) : "-";
+  if(!parsed.length){
+    astTree.textContent="AST not found in output.";
+    astMapChip.textContent="AST map: unavailable";
+    return;
+  }
+
+  const root={kind:"ROOT",val:"",ln:null,rawLn:null,children:[]};
+  const stack=[{depth:-1,node:root}];
+  for(const item of parsed){
+    while(stack.length && stack[stack.length-1].depth>=item.depth) stack.pop();
+    const node=parseNodeText(item.text);
+    stack[stack.length-1].node.children.push(node);
+    stack.push({depth:item.depth,node});
+  }
+
+  const adjusted=normalizeAstLines(root);
+  astMapChip.textContent=`AST map: ${parsed.length} nodes, ${adjusted} refined`;
+  astMapChip.className=adjusted ? "chip hot" : "chip good";
+
+  function walk(node,parentKind="",idx=0){
+    const edge=edgeFor(parentKind,idx);
+    const hasLine=Number.isFinite(node.ln);
+    const adjustedLine=hasLine && node.rawLn && node.rawLn!==node.ln;
+    const lineAttr=hasLine ? ` data-line="${node.ln}" data-kind="${esc(node.kind)}"` : "";
+    const rawAttr=node.rawLn ? ` data-raw-line="${node.rawLn}"` : "";
+    const title=hasLine ? ` title="Go to source line ${node.ln}${adjustedLine ? ` (compiler reported ${node.rawLn})` : ""}"` : "";
+    let html=`<li><div class="node${adjustedLine ? " adjusted" : ""}"${lineAttr}${rawAttr}${title}>`;
+    if(edge) html+=`<span class="edge">${edge}</span>`;
+    html+=`<span class="kind">${esc(node.kind)}</span>`;
+    if(node.val) html+=`<span class="val">(${esc(node.val)})</span>`;
+    if(hasLine) html+=`<span class="ln">[line ${node.ln}]</span>`;
+    html+="</div>";
+    if(node.children.length){
+      html+="<ul>";
+      node.children.forEach((child,i)=> html+=walk(child,node.kind,i));
+      html+="</ul>";
+    }
+    html+="</li>";
+    return html;
+  }
+
+  let html="<ul>";
+  root.children.forEach((child,i)=> html+=walk(child,"",i));
+  html+="</ul>";
+  astTree.innerHTML=html;
+}
+
+function hlAsm(text){
+  return esc(text)
+    .replace(/(#.*)$/gm,"<span class='c'>$1</span>")
+    .replace(/\b(movq|movl|leaq|pushq|popq|call|ret|cmp|addq|subq|imul|idiv|jmp|je|jne|jge|jle|jg|jl|and|or|xor|test|leave)\b/g,"<span class='k'>$1</span>")
+    .replace(/(%[a-z0-9]+)/gi,"<span class='r'>$1</span>")
+    .replace(/\b([0-9]+)\b/g,"<span class='n'>$1</span>");
+}
+
+function countIssues(text){
+  const matches=String(text||"").match(/\b(ERROR|WARNING)\b|Semantic errors\s*:\s*[1-9]|Warnings\s*:\s*[1-9]/gi);
+  return matches ? matches.length : 0;
+}
+
+function updatePhaseState(phase,state,cls=""){
+  const card=document.querySelector(`.phase-card[data-phase="${phase}"] .phase-state`);
+  if(!card) return;
+  card.textContent=state;
+  card.className="phase-state "+cls;
+}
+
+function resetMetrics(){
+  metricTokens.textContent="-";
+  metricAst.textContent="-";
+  metricIssues.textContent="-";
+  metricAsm.textContent="-";
+  astMapChip.textContent="AST map: waiting";
+  astMapChip.className="chip";
+  lastRunChip.textContent="No run yet";
+  [1,2,3].forEach(n=>updatePhaseState(n,"Waiting"));
+}
+
+async function runAll(){
+  const code=src.value.trim();
+  if(!code){ setStatus("Please enter C code.","bad"); return; }
+  setStatus("Running backend compiler in WSL...");
+  runBtn.disabled=true; heroRun.disabled=true;
+  apiChip.textContent="Backend: running request";
+  apiChip.className="chip hot";
+  [1,2,3].forEach(n=>updatePhaseState(n,"Running","warn"));
+
+  try{
+    const res=await fetch("http://localhost:9000/api/analyze",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({code})
+    });
+    const data=await res.json();
+    if(!res.ok) throw new Error(data.error||"Request failed");
+    lastData=data;
+
+    renderLexTable(data.phase1_lexical.tokens || data.phase1_lexical.err);
+    renderAstTree(data.phase2_semantic_ast.ast || "");
+    const semanticText=`[Syntax]\n${data.phase2_semantic_ast.syntax||"(none)"}\n\n[Semantic]\n${data.phase2_semantic_ast.semantic||"(none)"}`;
+    semantic.textContent=semanticText;
+    opt.textContent=data.phase3_optimization_tcg.optimization||"(none)";
+
+    const issueCount=countIssues(semanticText);
+    metricIssues.textContent=String(issueCount);
+    metricAsm.textContent=data.phase3_optimization_tcg.assembly ? String(data.phase3_optimization_tcg.assembly.split("\n").filter(Boolean).length) : "-";
+
+    updatePhaseState(1,data.phase1_lexical.ok ? "Complete" : "Check output",data.phase1_lexical.ok ? "ok" : "warn");
+    updatePhaseState(2,data.phase2_semantic_ast.ok ? "Complete" : "Check output",data.phase2_semantic_ast.ok ? "ok" : "warn");
+
+    if(data.phase3_optimization_tcg.ok){
+      tcg.textContent=data.phase3_optimization_tcg.tcg_console||"(none)";
+      asm.innerHTML=hlAsm(data.phase3_optimization_tcg.assembly||"Assembly not generated.");
+      updatePhaseState(3,"Complete","ok");
+      setStatus("Completed all phases successfully.","ok");
+    }else{
+      tcg.textContent="Phase 3 skipped due to semantic/syntax errors.";
+      asm.textContent="Assembly not generated for this run.";
+      updatePhaseState(3,"Skipped","warn");
+      setStatus("Phase 3 skipped due to earlier issues.","bad");
+    }
+
+    apiChip.textContent="Backend: connected";
+    apiChip.className="chip good";
+    lastRunChip.textContent=`Last run: ${new Date().toLocaleTimeString()}`;
+  }catch(e){
+    setStatus("Error: "+e.message,"bad");
+    apiChip.textContent="Backend: unavailable";
+    apiChip.className="chip";
+    [1,2,3].forEach(n=>updatePhaseState(n,"Waiting"));
+  }finally{
+    runBtn.disabled=false; heroRun.disabled=false;
+  }
+}
+
+function refreshSamples(){
+  let items=[];
+  try { items=JSON.parse(localStorage.getItem("compiler_samples")||"[]"); }
+  catch { localStorage.removeItem("compiler_samples"); }
+  saved.innerHTML=items.map((x,i)=>`<option value="${i}">${esc(x.name)}</option>`).join("") || "<option value=''>No saved samples</option>";
+}
+
+function loadDemo(){
+  src.value=demo;
+  updateLineNumbers();
+  resetMetrics();
+  setStatus("Demo loaded.");
+}
+
+document.getElementById("demo").onclick=loadDemo;
+document.getElementById("heroDemo").onclick=loadDemo;
+document.getElementById("run").onclick=runAll;
+document.getElementById("heroRun").onclick=runAll;
+
+document.getElementById("saveSample").onclick=()=>{
+  const name=prompt("Sample name?");
+  if(!name) return;
+  const items=JSON.parse(localStorage.getItem("compiler_samples")||"[]");
+  items.push({name,code:src.value});
+  localStorage.setItem("compiler_samples",JSON.stringify(items));
+  refreshSamples();
+  setStatus("Sample saved.");
+};
+
+document.getElementById("loadSaved").onclick=()=>{
+  const items=JSON.parse(localStorage.getItem("compiler_samples")||"[]");
+  const i=+saved.value;
+  if(Number.isInteger(i)&&items[i]){
+    src.value=items[i].code;
+    updateLineNumbers();
+    resetMetrics();
+    setStatus("Saved sample loaded.");
+  }
+};
+
+document.getElementById("deleteSaved").onclick=()=>{
+  const items=JSON.parse(localStorage.getItem("compiler_samples")||"[]");
+  const i=+saved.value;
+  if(Number.isInteger(i)&&items[i] && confirm(`Delete sample "${items[i].name}"?`)){
+    items.splice(i,1);
+    localStorage.setItem("compiler_samples",JSON.stringify(items));
+    refreshSamples();
+    setStatus("Sample deleted.");
+  }
+};
+
+document.getElementById("dlJson").onclick=()=>{ if(!lastData) return setStatus("Run once before download.","bad"); download("compiler-report.json",JSON.stringify(lastData,null,2)); };
+document.getElementById("dlAsm").onclick=()=>{ if(!lastData) return setStatus("Run once before download.","bad"); download("output.s",lastData.phase3_optimization_tcg.assembly||""); };
+document.getElementById("dlText").onclick=()=>{ if(!lastData) return setStatus("Run once before download.","bad"); download("full-log.txt",(lastData.raw?.parser_stdout||"")+"\n"+(lastData.raw?.parser_stderr||"")); };
+
+document.querySelectorAll(".tab").forEach(btn=>btn.onclick=()=>showView(btn.dataset.v));
+
+function updateLineNumbers(){
+  const lines=sourceLineCount();
+  lineGutter.textContent=Array.from({length:lines},(_,i)=>String(i+1)).join("\n");
+  lineCount.textContent=`${lines} ${lines===1 ? "line" : "lines"}`;
+  updateCurrentLineHighlight();
+}
+
+function currentLineNumber(){
+  const pos=src.selectionStart || 0;
+  return src.value.slice(0,pos).split("\n").length;
+}
+
+function updateCurrentLineHighlight(){
+  const line=currentLineNumber();
+  const style=getComputedStyle(src);
+  const lineHeight=parseFloat(style.lineHeight) || 20;
+  const padTop=parseFloat(style.paddingTop) || 0;
+  const y=padTop + ((line - 1) * lineHeight) - src.scrollTop;
+  currentLine.style.transform=`translateY(${y}px)`;
+  cursorLine.textContent=`Ln ${line}`;
+}
+
+function goToLine(line,kind="AST node"){
+  const n=clampLine(line);
+  const parts=src.value.split("\n");
+  let start=0;
+  for(let i=0;i<n-1 && i<parts.length;i++) start += parts[i].length + 1;
+  const end=start + (parts[n-1]?.length || 0);
+  const style=getComputedStyle(src);
+  const lineHeight=parseFloat(style.lineHeight) || 20;
+  const targetTop=Math.max(0, (n - 3) * lineHeight);
+  src.focus();
+  src.setSelectionRange(start,end);
+  src.scrollTop=targetTop;
+  lineGutter.scrollTop=targetTop;
+  updateCurrentLineHighlight();
+  setStatus(`${kind} focused source line ${n}.`,"ok");
+}
+
+src.addEventListener("input",()=>{ updateLineNumbers(); });
+src.addEventListener("scroll",()=>{ lineGutter.scrollTop=src.scrollTop; updateCurrentLineHighlight(); });
+src.addEventListener("click",updateCurrentLineHighlight);
+src.addEventListener("keyup",updateCurrentLineHighlight);
+
+astTree.addEventListener("click",(e)=>{
+  const node=e.target.closest(".node[data-line]");
+  if(!node) return;
+  goToLine(node.getAttribute("data-line"),node.getAttribute("data-kind") || "AST node");
+});
+
+src.value=demo;
+refreshSamples();
+resetMetrics();
+updateLineNumbers();
+  </script>
+</body>
+</html>

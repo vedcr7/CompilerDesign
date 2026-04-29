@@ -1,0 +1,193 @@
+import json
+import os
+import re
+import subprocess
+import tempfile
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent
+BUILD = ROOT / "build"
+TMP_DIR = ROOT / "web_tmp"
+ANSI_RE = re.compile(r"\x1B\[[0-?]*[ -/]*[@-~]")
+
+
+def strip_ansi(text: str) -> str:
+    return ANSI_RE.sub("", text or "")
+
+
+def run_cmd(cmd, cwd: Path):
+    proc = subprocess.run(
+        cmd,
+        cwd=str(cwd),
+        text=True,
+        capture_output=True,
+    )
+    return proc.returncode, strip_ansi(proc.stdout), strip_ansi(proc.stderr)
+
+
+def extract_between(text: str, start_marker: str, end_markers):
+    start = text.find(start_marker)
+    if start < 0:
+        return ""
+    start += len(start_marker)
+    end = len(text)
+    for marker in end_markers:
+        pos = text.find(marker, start)
+        if pos >= 0:
+            end = min(end, pos)
+    return text[start:end].strip()
+
+
+def parse_compiler_output(raw: str):
+    syntax = extract_between(
+        raw,
+        "PHASE 2 — SYNTAX ANALYSIS",
+        ["ABSTRACT SYNTAX TREE (AST)", "PHASE 3 — SEMANTIC ANALYSIS"],
+    )
+    ast = extract_between(
+        raw,
+        "ABSTRACT SYNTAX TREE (AST)",
+        ["PHASE 3 — SEMANTIC ANALYSIS"],
+    )
+    semantic = extract_between(
+        raw,
+        "PHASE 3 — SEMANTIC ANALYSIS",
+        ["PHASE 4 — INTERMEDIATE CODE GENERATION", "Skipping code generation"],
+    )
+    optimization = extract_between(
+        raw,
+        "PHASE 5 — CODE OPTIMISATION REPORT",
+        ["PHASE 6 — TARGET CODE GENERATION"],
+    )
+    tcg = extract_between(
+        raw,
+        "PHASE 6 — TARGET CODE GENERATION",
+        [],
+    )
+    return {
+        "syntax": syntax,
+        "ast": ast,
+        "semantic": semantic,
+        "optimization": optimization,
+        "tcg_console": tcg,
+    }
+
+
+class Handler(BaseHTTPRequestHandler):
+    def _json(self, code: int, payload):
+        body = json.dumps(payload, ensure_ascii=True).encode("utf-8")
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
+    def do_POST(self):
+        if self.path != "/api/analyze":
+            self._json(404, {"error": "Not found"})
+            return
+
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            raw = self.rfile.read(length).decode("utf-8")
+            data = json.loads(raw)
+            code = (data.get("code") or "").strip()
+        except Exception:
+            self._json(400, {"error": "Invalid request payload"})
+            return
+
+        if not code:
+            self._json(400, {"error": "Please provide C source code"})
+            return
+
+        TMP_DIR.mkdir(exist_ok=True)
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".c", delete=False, dir=str(TMP_DIR), encoding="utf-8"
+        ) as f:
+            f.write(code + "\n")
+            src_file = Path(f.name)
+
+        # Build compiler + lexer driver
+        mk_rc, mk_out, mk_err = run_cmd(["make", "phaseweb"], ROOT)
+        if mk_rc != 0:
+            self._json(
+                500,
+                {
+                    "error": "Build failed",
+                    "details": mk_out + "\n" + mk_err,
+                },
+            )
+            return
+
+        lex_bin = BUILD / "lexer_dump"
+        parser_bin = BUILD / "parser"
+        if not lex_bin.exists() or not parser_bin.exists():
+            self._json(500, {"error": "Compiler binaries missing after build"})
+            return
+
+        asm_file = ROOT / "output.s"
+        # Avoid serving stale assembly from a previous successful run.
+        if asm_file.exists():
+            try:
+                asm_file.unlink()
+            except OSError:
+                pass
+
+        lex_rc, lex_out, lex_err = run_cmd([str(lex_bin), str(src_file)], ROOT)
+        parse_rc, parse_out, parse_err = run_cmd([str(parser_bin), str(src_file)], ROOT)
+
+        phase3_ok = "PHASE 6 — TARGET CODE GENERATION" in parse_out
+        asm = asm_file.read_text(encoding="utf-8") if (phase3_ok and asm_file.exists()) else ""
+        parsed = parse_compiler_output(parse_out + ("\n" + parse_err if parse_err else ""))
+
+        self._json(
+            200,
+            {
+                "build": {"ok": mk_rc == 0, "log": mk_out, "err": mk_err},
+                "phase1_lexical": {
+                    "ok": lex_rc == 0,
+                    "description": "Token stream generated by Flex lexer.",
+                    "tokens": lex_out,
+                    "err": lex_err,
+                },
+                "phase2_semantic_ast": {
+                    "ok": parse_rc == 0 or "PHASE 3 — SEMANTIC ANALYSIS" in parse_out,
+                    "description": "Parser builds AST and runs semantic analysis.",
+                    "syntax": parsed["syntax"],
+                    "ast": parsed["ast"],
+                    "semantic": parsed["semantic"],
+                },
+                "phase3_optimization_tcg": {
+                    "ok": phase3_ok,
+                    "description": "Optimizer transforms TAC and TCG emits x86-64 assembly.",
+                    "optimization": parsed["optimization"],
+                    "tcg_console": parsed["tcg_console"],
+                    "assembly": asm,
+                },
+                "raw": {
+                    "parser_stdout": parse_out,
+                    "parser_stderr": parse_err,
+                },
+            },
+        )
+
+        try:
+            os.unlink(src_file)
+        except OSError:
+            pass
+
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PHASE3_API_PORT", "9000"))
+    server = HTTPServer(("0.0.0.0", port), Handler)
+    print(f"Phase 3 backend running on http://0.0.0.0:{port}")
+    server.serve_forever()
