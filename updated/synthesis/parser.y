@@ -9,6 +9,9 @@
 
 %{
 #include "ast.h"
+#include "icg.h"
+#include "opt.h"
+#include "tcg.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -697,6 +700,29 @@ int main(int argc, char *argv[])
     else
         printf(C_RED "  ✘  Program has %d error(s) — fix them before compilation.\n\n" C_RESET,
                total);
+
+    /* ── PHASE 4: Intermediate Code Generation ──────────────── */
+    if (total == 0) {
+        section("PHASE 4 — INTERMEDIATE CODE GENERATION");
+        ICGCtx *icg_ctx = icg_init();
+        icg_generate(icg_ctx, parse_root);
+        icg_print(icg_ctx);
+        /* ── PHASE 5: Code Optimization ──────────────────────── */
+        opt_optimize(icg_ctx);  /* prints optimization report + optimized TAC */
+        /* ── PHASE 6: Target Code Generation ─────────────────── */
+        section("PHASE 6 — TARGET CODE GENERATION");
+        TCGCtx *tcg_ctx = tcg_init();
+        tcg_generate(tcg_ctx, icg_ctx);
+        tcg_print(tcg_ctx);
+        tcg_write_file(tcg_ctx, "output.s");
+        tcg_free(tcg_ctx);
+        /* Optional: write TAC to file
+        icg_write_file(icg_ctx, "output.tac");
+        */
+        icg_free(icg_ctx);
+    } else {
+        printf(C_YELLOW "\n  ⚠  Skipping code generation — errors found in semantic analysis.\n\n" C_RESET);
+    }
 
     ast_free(parse_root);
     return (total > 0) ? 1 : 0;
